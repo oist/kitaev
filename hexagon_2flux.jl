@@ -123,14 +123,14 @@ function MakeBonds(Nx::Int,Xb::Array{Float64,2},Xw::Array{Float64,2})
 end
 
 function MakeS(N::Int, J::Array,Bondsw::Array{Int}, bw::Array{Int})
-      uw=ones(Int8,N,3);
-      ub=ones(Int8,N,3);
 
       S=spzeros(N, N);
 
+      h["J"]=J;
+
       for ii in 1:N
           for jj in 1:3
-              S[ii,Bondsw[ii,jj]]=J[ii,jj]*uw[ii,jj]*bw[ii,jj];
+              S[ii,Bondsw[ii,jj]]=J[ii,jj]*bw[ii,jj];
           end
       end
       h["S"]=full(S);
@@ -155,8 +155,8 @@ function LDOS(F::Base.LinAlg.SVD)
   heights=zeros(omega);
 
   for  j in 1:N;
-    k=round(Int,ceil(F[:S][j]*25));
-    heights[k]+=.5*F[:U][j,site].^2
+    k=ceil(Int,F[:S][j]*25);
+    heights[k]+=.5*F[:U][j,site].^2;
   end
 
   h["omega"]=omega;
@@ -207,7 +207,8 @@ end
 
 Xb, Xw = MakeHexagon(Nx);
 Bondsb, Bondsw, bb, bw= MakeBonds(Nx,Xb,Xw);
-S=MakeS(N,Bondsw, bw)
+J=Fluxes(i,j);
+S=MakeS(N,J,Bondsw, bw)
 
 println("starting ED")
 F=DiagS(S)
