@@ -48,8 +48,8 @@ function MakeHexagon(Nx::Int)
       Xb=Xb[vb,:];
       Xw=Xw[vw,:];
 
-      #g["Xb"]=Xb;
-      #g["Xw"]=Xw;
+      h["Xb"]=Xb;
+      h["Xw"]=Xw;
 
   return Xb, Xw
 end
@@ -112,12 +112,12 @@ function MakeBonds(Nx::Int,Xb::Array{Float64,2},Xw::Array{Float64,2})
   Bondsb[i0b[Nx+(1:Nx)],2]=i0w[1+(1:Nx)]-1;
   boundaryb[i0b[Nx+(1:Nx)],2]=0
 
-  #g["Bondsw"]=Bondsw;
-  #g["Bondsb"]=Bondsb;
-  #g["Bondaryw"]=boundaryw;
-  #g["Bondaryb"]=boundaryb;
-  #g["i0w"]=i0w;
-  #g["i0b"]=i0b;
+  h["Bondsw"]=Bondsw;
+  h["Bondsb"]=Bondsb;
+  h["Bondaryw"]=boundaryw;
+  h["Bondaryb"]=boundaryb;
+  h["i0w"]=i0w;
+  h["i0b"]=i0b;
 
   return Bondsb, Bondsw, boundaryb, boundaryw
 end
@@ -140,7 +140,7 @@ function MakeS(N::Int, Bondsw::Array{Int}, bw::Array{Int})
               S[ii,Bondsw[ii,jj]]=J[ii,jj]*uw[ii,jj]*bw[ii,jj];
           end
       end
-      g["S"]=full(S);
+      h["S"]=full(S);
       return S;
 end
 
@@ -148,13 +148,9 @@ function DiagS(S::SparseMatrixCSC{Float64,Int64})
 
   @time F=svdfact(full(S))
 
-  E=F[:S]
-  U=F[:U]
-  V=F[:V]
-
-  g["E"]=F[:S];
-  g["U"]=F[:U];
-  g["V"]=F[:V];
+  h["E"]=F[:S];
+  h["U"]=F[:U];
+  h["V"]=F[:V];
 
   return F;
 end
@@ -170,8 +166,8 @@ function LDOS(F::Base.LinAlg.SVD)
     heights[k]+=.5*F[:U][j,site].^2
   end
 
-  g["omega"]=omega;
-  g["heights"]=heights;
+  h["omega"]=omega;
+  h["heights"]=heights;
 
   return 0;
 end
@@ -187,9 +183,10 @@ else
 end
 
 version=readall(`git rev-list --count HEAD`)[1:end-1];
-if exists[g,version]
+if exists(g,version)
+  println("You might want to commit to make a new version...")
   v=g[version];
-  h=g_create(v,)
+  h=g_create(v,string(DateTime(now()) ) )
 else
   h=g_create(g,version);
 end

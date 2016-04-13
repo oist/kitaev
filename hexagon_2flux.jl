@@ -48,6 +48,9 @@ function MakeHexagon(Nx::Int)
       Xb=Xb[vb,:];
       Xw=Xw[vw,:];
 
+      h["Xb"]=Xb;
+      h["Xw"]=Xw;
+
   return Xb, Xw
 end
 
@@ -105,61 +108,111 @@ function MakeBonds(Nx::Int,Xb::Array{Float64,2},Xw::Array{Float64,2})
   boundaryb[i0b[Nx+1+(1:Nx)]-1,1]=0
 
   Bondsw[i0w[1+(1:Nx)]-1,2]=i0b[Nx+(1:Nx)];
-  boundaryw[i0w[1+(1:Nx)-1],2]=0
+  boundaryw[i0w[1+(1:Nx)]-1,2]=0
   Bondsb[i0b[Nx+(1:Nx)],2]=i0w[1+(1:Nx)]-1;
   boundaryb[i0b[Nx+(1:Nx)],2]=0
 
+  h["Bondsw"]=Bondsw;
+  h["Bondsb"]=Bondsb;
+  h["Bondaryw"]=boundaryw;
+  h["Bondaryb"]=boundaryb;
+  h["i0w"]=i0w;
+  h["i0b"]=i0b;
 
   return Bondsb, Bondsw, boundaryb, boundaryw
 end
 
-function MakeM(N::Int, Bondsw::Array{Int}, bw::Array{Int})
-      J=Array{Int8}(N,3);
-      for i in 1:N
-        for j in 1:3
-            J[i,j]=1;
-        end
-      end
-
+function MakeS(N::Int, J::Array,Bondsw::Array{Int}, bw::Array{Int})
       uw=ones(Int8,N,3);
       ub=ones(Int8,N,3);
 
-      A=spzeros(N, N);
-      M=spzeros(2*N,2*N);
+      S=spzeros(N, N);
 
       for ii in 1:N
           for jj in 1:3
-              A[ii,Bondsw[ii,jj]]=J[ii,jj]*uw[ii,jj]*bw[ii,jj];
+              S[ii,Bondsw[ii,jj]]=J[ii,jj]*uw[ii,jj]*bw[ii,jj];
           end
       end
-
-      M[(N+1):(2*N),1:N]=A;
-      M[1:N,(N+1):(2*N)]=-transpose(A);
-
-      return M;
+      h["S"]=full(S);
+      return S;
 end
 
-function DiagM(M::SparseMatrixCSC{Float64,Int64},neigs::Int=6)
-  #@time E,nconv,niter,mnult,rsid=eigs(M;nev=neigs,which=:SM,ritzvec=false);
-  @time E=eigvals(full(M))
-  title("Density of States, Isotropicd Honeycomb")
-  plt[:hist](2*abs(E),15)
-  savefig("Rdiag$Nx.png")
+function DiagS(S::SparseMatrixCSC{Float64,Int64})
 
-  h5open("diagonalization$Nx.h5","w") do file
-    write(file,"Ereal",real(E))
-    write(file,"Eimag",imag(E))
+  @time F=svdfact(full(S))
+
+  h["E"]=F[:S];
+  h["U"]=F[:U];
+  h["V"]=F[:V];
+
+  return F;
+end
+
+function LDOS(F::Base.LinAlg.SVD)
+  site=round(Int,N/2);
+  n=150;
+  omega=linspace(0,6,150);
+  heights=zeros(omega);
+
+  for  j in 1:N;
+    k=round(Int,ceil(F[:S][j]*25));
+    heights[k]+=.5*F[:U][j,site].^2
   end
+
+  h["omega"]=omega;
+  h["heights"]=heights;
 
   return 0;
 end
 
+function Fluxes(i::Int,j::Int)
+  J=Array{Int64}(N,3);
+  for i in 1:N
+    for j in 1:3
+        J[i,j]=1;
+    end
+  end
+
+  J[i,j]=-1;
+
+  return J
+end
+
+
 Nx=50;
 N=3*Nx^2;
-Neigs=100;
+i=round(Int,N/2);
+j=1;
+
+fid=h5open("twoflux.h5","w")
+if exists(fid,"$Nx")
+  g=fid["$Nx"];
+else
+  g=g_create(fid,"$Nx");
+end
+
+version=readall(`git rev-list --count HEAD`)[1:end-1];
+if exists(g,version)
+  k=g[version];
+else
+  k=g_create(g,version);
+end
+
+flipper="$i $j"
+if exists(k,flipper)
+  error("You already ran this combo...")
+else
+  h=g_create(k,flipper)
+end
 
 Xb, Xw = MakeHexagon(Nx);
 Bondsb, Bondsw, bb, bw= MakeBonds(Nx,Xb,Xw);
-M=MakeM(N,Bondsw, bw)
+S=MakeS(N,Bondsw, bw)
+
 println("starting ED")
-DiagM(M,Neigs)
+F=DiagS(S)
+println("finished ED")
+
+LDOS(F);
+
+close(fid);
