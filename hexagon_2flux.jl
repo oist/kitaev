@@ -151,25 +151,25 @@ end
 function LDOS(F::Base.LinAlg.SVD)
   site=round(Int,N/2);
   n=150;
-  omega=linspace(0,6,150);
+  omega=collect(linspace(0,6,150));
   heights=zeros(omega);
 
   for  j in 1:N;
-    k=ceil(Int,F[:S][j]*25);
+    k=ceil(Int,F[:S][j]*50);
     heights[k]+=.5*F[:U][j,site].^2;
   end
 
   h["omega"]=omega;
   h["heights"]=heights;
 
-  return 0;
+  return 1;
 end
 
 function Fluxes(i::Int,j::Int)
   J=Array{Int64}(N,3);
-  for i in 1:N
-    for j in 1:3
-        J[i,j]=1;
+  for l in 1:N
+    for m in 1:3
+        J[l,m]=1;
     end
   end
 
@@ -214,6 +214,6 @@ println("starting ED")
 F=DiagS(S)
 println("finished ED")
 
-LDOS(F);
+ret=LDOS(F);
 
 close(fid);

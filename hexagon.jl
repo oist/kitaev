@@ -137,7 +137,7 @@ function MakeS(N::Int, Bondsw::Array{Int}, bw::Array{Int})
 
       for ii in 1:N
           for jj in 1:3
-              S[ii,Bondsw[ii,jj]]=J[ii,jj]*uw[ii,jj]*bw[ii,jj];
+              S[ii,Bondsw[ii,jj]]=J[ii,jj]*uw[ii,jj];#*bw[ii,jj];
           end
       end
       h["S"]=full(S);
