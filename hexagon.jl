@@ -1,4 +1,3 @@
-  using PyPlot;
   using HDF5;
 
 function MakeHexagon(Nx::Int)
@@ -38,10 +37,10 @@ function MakeHexagon(Nx::Int)
       Xb[Npara+(1:Npara),2]=rotmat[2,1]*Xb[1:Npara,1]+rotmat[2,2]*Xb[1:Npara,2];
       Xw[Npara+(1:Npara),2]=rotmat[2,1]*Xw[1:Npara,1]+rotmat[2,2]*Xw[1:Npara,2];
 
-      Xb[2*Npara+(1:Npara),1]=rotmat[1,1]*Xb[Npara+(1:Npara),1]+rotmat[1,2]*Xb[Npara+(1:Npara),2];
-      Xw[2*Npara+(1:Npara),1]=rotmat[1,1]*Xw[Npara+(1:Npara),1]+rotmat[1,2]*Xw[Npara+(1:Npara),2];
-      Xb[2*Npara+(1:Npara),2]=rotmat[2,1]*Xb[Npara+(1:Npara),1]+rotmat[2,2]*Xb[Npara+(1:Npara),2];
-      Xw[2*Npara+(1:Npara),2]=rotmat[2,1]*Xw[Npara+(1:Npara),1]+rotmat[2,2]*Xw[Npara+(1:Npara),2];
+      Xb[2*Npara+(1:Npara),1]=rotmat[1,1]*Xb[Npara+(1:Npara),1] +rotmat[1,2]*Xb[Npara+(1:Npara),2];
+      Xw[2*Npara+(1:Npara),1]=rotmat[1,1]*Xw[Npara+(1:Npara),1] +rotmat[1,2]*Xw[Npara+(1:Npara),2];
+      Xb[2*Npara+(1:Npara),2]=rotmat[2,1]*Xb[Npara+(1:Npara),1] +rotmat[2,2]*Xb[Npara+(1:Npara),2];
+      Xw[2*Npara+(1:Npara),2]=rotmat[2,1]*Xw[Npara+(1:Npara),1] +rotmat[2,2]*Xw[Npara+(1:Npara),2];
 
       vb=sortperm(Xb[:,1]+Npara*Xb[:,2])
       vw=sortperm(Xw[:,1]+Npara*Xw[:,2])
@@ -137,7 +136,7 @@ function MakeS(N::Int, Bondsw::Array{Int}, bw::Array{Int})
 
       for ii in 1:N
           for jj in 1:3
-              S[ii,Bondsw[ii,jj]]=J[ii,jj]*uw[ii,jj];#*bw[ii,jj];
+              S[ii,Bondsw[ii,jj]]=J[ii,jj]*uw[ii,jj]*bw[ii,jj];
           end
       end
       h["S"]=full(S);
@@ -158,12 +157,12 @@ end
 function LDOS(F::Base.LinAlg.SVD)
   site=round(Int,N/2);
   n=150;
-  omega=linspace(0,6,150);
+  omega=collect(linspace(0,6,150));
   heights=zeros(omega);
 
-  for  j in 1:N;
-    k=round(Int,ceil(F[:S][j]*25));
-    heights[k]+=.5*F[:U][j,site].^2
+  for  e in 1:N;
+    k=round(Int,ceil(F[:S][e]*50));
+    heights[k]+=.5*F[:U][site,e].^2
   end
 
   h["omega"]=omega;
@@ -190,14 +189,15 @@ if exists(g,version)
 else
   h=g_create(g,version);
 end
+attrs(h)["Boundary Type"]="Open Boundary"
 
 Xb, Xw = MakeHexagon(Nx);
 Bondsb, Bondsw, bb, bw= MakeBonds(Nx,Xb,Xw);
 S=MakeS(N,Bondsw, bw)
 
-println("starting ED")
+println("starting SVD")
 F=DiagS(S)
-println("finished ED")
+println("finished SVD")
 
 LDOS(F);
 
