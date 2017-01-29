@@ -136,7 +136,7 @@ function MakeS(N::Int, Bondsw::Array{Int}, bw::Array{Int})
 
       for ii in 1:N
           for jj in 1:3
-              S[ii,Bondsw[ii,jj]]=J[ii,jj]*uw[ii,jj]*bw[ii,jj];
+              S[ii,Bondsw[ii,jj]]=J[ii,jj]*uw[ii,jj]#*bw[ii,jj];
           end
       end
       h["S"]=full(S);
@@ -171,7 +171,7 @@ function LDOS(F::Base.LinAlg.SVD)
   return 0;
 end
 
-Nx=50;
+Nx=1;
 N=3*Nx^2;
 
 fid=h5open("diagonalization.h5","w")
@@ -189,7 +189,7 @@ if exists(g,version)
 else
   h=g_create(g,version);
 end
-attrs(h)["Boundary Type"]="Open Boundary"
+attrs(h)["Boundary Type"]="periodic boundary"
 
 Xb, Xw = MakeHexagon(Nx);
 Bondsb, Bondsw, bb, bw= MakeBonds(Nx,Xb,Xw);
@@ -199,6 +199,6 @@ println("starting SVD")
 F=DiagS(S)
 println("finished SVD")
 
-LDOS(F);
+#LDOS(F);
 
 close(fid);

@@ -1,5 +1,5 @@
-  using PyPlot;
-  using HDF5;
+
+using HDF5;
 
 function MakeHexagon(Nx::Int)
       Npara=Nx^2;
@@ -130,7 +130,7 @@ function MakeS(N::Int, J::Array,Bondsw::Array{Int}, bw::Array{Int})
 
       for ii in 1:N
           for jj in 1:3
-              S[ii,Bondsw[ii,jj]]=J[ii,jj]*bw[ii,jj];
+              S[ii,Bondsw[ii,jj]]=J[ii,jj]#*bw[ii,jj];
           end
       end
       h["S"]=full(S);
@@ -144,6 +144,7 @@ function DiagS(S::SparseMatrixCSC{Float64,Int64})
   h["E"]=F[:S];
   h["U"]=F[:U];
   h["V"]=F[:V];
+  h["Etot"]=sum(F[:S]);
 
   return F;
 end
@@ -165,16 +166,16 @@ function LDOS(F::Base.LinAlg.SVD)
   return 1;
 end
 
-function Fluxes(i::Int,j::Int)
+function Fluxes(i0::Int,nflip::Int)
   J=Array{Int64}(N,3);
   for l in 1:N
     for m in 1:3
         J[l,m]=1;
     end
   end
-
-  J[i,j]=-1;
-
+  for l in 0:(nflip-1)
+    J[i0+l,3]=-1
+  end
   return J
 end
 
@@ -182,9 +183,9 @@ end
 Nx=50;
 N=3*Nx^2;
 i=round(Int,N/2);
-j=1;
+nflip=10;
 
-fid=h5open("twoflux.h5","w")
+fid=h5open("twoflux_periodic.h5","r+")
 if exists(fid,"$Nx")
   g=fid["$Nx"];
 else
@@ -198,7 +199,7 @@ else
   k=g_create(g,version);
 end
 
-flipper="$i $j"
+flipper="nflip $nflip"
 if exists(k,flipper)
   error("You already ran this combo...")
 else
@@ -207,7 +208,7 @@ end
 
 Xb, Xw = MakeHexagon(Nx);
 Bondsb, Bondsw, bb, bw= MakeBonds(Nx,Xb,Xw);
-J=Fluxes(i,j);
+J=Fluxes(i-nflip,nflip);
 S=MakeS(N,J,Bondsw, bw)
 
 println("starting ED")
